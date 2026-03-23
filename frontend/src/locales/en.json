@@ -1,0 +1,50 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "packages": "All Packages",
+    "delivery": "Delivery",
+    "finance": "Finance",
+    "clients": "Clients",
+    "users": "Staff",
+    "prohibited": "Declaration",
+    "settings": "Settings",
+    "installApp": "Install App",
+    "logout": "Logout",
+    "confirmLogout": "Are you sure you want to logout?"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Interface Language"
+  },
+  "dashboard": {
+    "total": "Total",
+    "in_transit": "In Transit",
+    "clients": "Clients",
+    "delivery": "Delivery",
+    "unknown": "Unknown",
+    "on_warehouse": "On Warehouse",
+    "delivered": "Delivered",
+    "recent_packages": "Recent Packages",
+    "found": "Found",
+    "track_code": "Track Code",
+    "client": "Client",
+    "description": "Description",
+    "status": "Status",
+    "shelf": "Shelf",
+    "weight_price": "Weight/Price",
+    "date": "Date",
+    "no_packages": "No packages in this category",
+    "accept_package": "Accept Package",
+    "auto_scanner": "(Auto-scanner)",
+    "handover": "Handover",
+    "to_client": "to client",
+    "quick_actions": "Quick Actions",
+    "create_report": "Create Report",
+    "broadcast": "Broadcast"
+  }
+}

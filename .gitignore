@@ -1,0 +1,16 @@
+# Python / Django
+.venv/
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+.env
+
+# Node / Frontend
+node_modules/
+dist/
+.npm/
+
+# IDE
+.vscode/
+.idea/

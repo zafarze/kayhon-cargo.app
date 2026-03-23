@@ -1,0 +1,50 @@
+{
+  "sidebar": {
+    "dashboard": "Дашборд",
+    "packages": "Ҳамаи фиристаҳо",
+    "delivery": "Интиқол",
+    "finance": "Молия",
+    "clients": "Мизоҷон",
+    "users": "Кормандон",
+    "prohibited": "Декларатсия",
+    "settings": "Танзимот",
+    "installApp": "Насби App",
+    "logout": "Хуруҷ",
+    "confirmLogout": "Шумо дар ҳақиқат мехоҳед хориҷ шавед?"
+  },
+  "common": {
+    "loading": "Боргирӣ...",
+    "save": "Захира кардан",
+    "cancel": "Бекор кардан"
+  },
+  "settings": {
+    "title": "Танзимот",
+    "language": "Забони интерфейс"
+  },
+  "dashboard": {
+    "total": "Ҳамагӣ",
+    "in_transit": "Дар роҳ",
+    "clients": "Мизоҷон",
+    "delivery": "Интиқол",
+    "unknown": "Номаълум",
+    "on_warehouse": "Дар анбор",
+    "delivered": "Додашуда",
+    "recent_packages": "Фиристаҳои охирин",
+    "found": "Ёфт шуд",
+    "track_code": "Трек-код",
+    "client": "Мизоҷ",
+    "description": "Тавсиф",
+    "status": "Ҳолат",
+    "shelf": "Раф",
+    "weight_price": "Вазн/Нарх",
+    "date": "Сана",
+    "no_packages": "Дар ин категория фиристаҳо нест",
+    "accept_package": "Қабули фириста",
+    "auto_scanner": "(Авто-сканер)",
+    "handover": "Додани",
+    "to_client": "ба мизоҷ",
+    "quick_actions": "Амалҳои фаврӣ",
+    "create_report": "Сохтани ҳисобот",
+    "broadcast": "Паёмфиристӣ"
+  }
+}

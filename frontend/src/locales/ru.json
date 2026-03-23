@@ -1,0 +1,50 @@
+{
+  "sidebar": {
+    "dashboard": "Дашборд",
+    "packages": "Все посылки",
+    "delivery": "Доставка",
+    "finance": "Финансы",
+    "clients": "Клиенты",
+    "users": "Сотрудники",
+    "prohibited": "Декларация",
+    "settings": "Настройки",
+    "installApp": "Установить App",
+    "logout": "Выйти",
+    "confirmLogout": "Вы точно хотите выйти?"
+  },
+  "common": {
+    "loading": "Загрузка...",
+    "save": "Сохранить",
+    "cancel": "Отмена"
+  },
+  "settings": {
+    "title": "Настройки",
+    "language": "Язык интерфейса"
+  },
+  "dashboard": {
+    "total": "Всего",
+    "in_transit": "В пути",
+    "clients": "Клиентов",
+    "delivery": "Доставка",
+    "unknown": "Неизвестные",
+    "on_warehouse": "На складе",
+    "delivered": "Выданные",
+    "recent_packages": "Недавние посылки",
+    "found": "Найдено",
+    "track_code": "Трек-код",
+    "client": "Клиент",
+    "description": "Описание",
+    "status": "Статус",
+    "shelf": "Полка",
+    "weight_price": "Вес/Цена",
+    "date": "Дата",
+    "no_packages": "Посылок в этой категории нет",
+    "accept_package": "Принять посылку",
+    "auto_scanner": "(Авто-сканер)",
+    "handover": "Выдача",
+    "to_client": "клиенту",
+    "quick_actions": "Быстрые действия",
+    "create_report": "Создать отчет",
+    "broadcast": "Рассылка"
+  }
+}

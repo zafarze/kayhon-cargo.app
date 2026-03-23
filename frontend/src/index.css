@@ -1,0 +1,66 @@
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark, .dark *));
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  /* Убрали background-color и overflow, чтобы компоненты сами управляли фоном */
+  min-height: 100vh;
+}
+
+/* ======================================================= */
+/* 🚀 МАГИЯ СКРОЛЛБАРА (КАК НА MAC OS)                     */
+/* ======================================================= */
+
+/* 1. Полностью прячем главный системный скроллбар (но скролл работает!) */
+::-webkit-scrollbar {
+  width: 0px; 
+  height: 0px;
+  background: transparent; 
+}
+
+/* 2. Делаем тонюсенький красивый скроллбар только там, где мы сами захотим 
+   (мы уже добавили класс custom-scrollbar в наши таблицы и модалки) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0; /* Светло-серый цвет */
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1; /* Чуть темнее при наведении */
+}
+
+/* ======================================================= */
+/* АНИМАЦИИ (Blobs)                                        */
+/* ======================================================= */
+
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* --- Утилиты для 3D эффекта карточки --- */
+.perspective-1000 {
+  perspective: 1000px;
+}
