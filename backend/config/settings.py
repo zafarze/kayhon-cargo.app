@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     # --- Сторонние библиотеки ---
     'rest_framework',       # API
     'rest_framework_simplejwt',
-    'django_filters',# <--- ДОБАВЛЕНО ДЛЯ JWT
+    'django_filters',       # <--- ДОБАВЛЕНО ДЛЯ JWT
     'corsheaders',          # Чтобы React мог общаться с Django
 
     # --- Наши приложения ---
@@ -48,6 +48,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # <--- ВАЖНО: Должно быть первым!
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # <--- ДОБАВЛЕНО ДЛЯ РАЗДАЧИ СТАТИКИ
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -131,8 +132,21 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
+# =========================================================
+# --- НАСТРОЙКИ СТАТИЧЕСКИХ ФАЙЛОВ (CSS, JS, Изображения)
+# =========================================================
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles' 
+
+# ДОБАВЛЕНО: Явное указание хранилища для корректной работы WhiteNoise
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # =========================================================
 # --- НАСТРОЙКИ МЕДИА-ФАЙЛОВ (ДЛЯ ЗАГРУЗКИ ФОТО И АВАТАРОК)
@@ -159,8 +173,12 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5174",  
     "http://127.0.0.1:5174",  
+    "https://kayhon-cargo.web.app",
 ]
-
+CSRF_TRUSTED_ORIGINS = [
+    "https://kayhon-cargo.web.app",
+    "https://kayhon-backend-538751744849.europe-west3.run.app",
+]
 
 # --- Настройки темы UNFOLD (Современный Dashboard) ---
 UNFOLD = {
@@ -220,3 +238,4 @@ UNFOLD = {
         ],
     },
 }
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
