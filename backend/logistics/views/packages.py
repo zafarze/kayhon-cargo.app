@@ -52,10 +52,22 @@ def extract_client_from_photo(photo_file):
         logger.info(f"🤖 ИИ прочитал текст: {full_text}")
         
         # 1. ИЩЕМ КЛИЕНТА (САДДАМ, ZOIREHOH И Т.Д.)
-        potential_codes = re.findall(r'[A-Za-z0-9\+\[\]]{3,25}', full_text)
+        # Добавляем дефис, подчеркивание и уменьшаем минимальную длину до 2
+        potential_codes = re.findall(r'[A-Za-z0-9\-\+\[\]\_]{2,30}', full_text)
         matched_client = None
         if potential_codes:
-            matched_client = ClientProfile.objects.filter(client_code__in=potential_codes).first()
+            from django.db.models import Q
+            import operator
+            from functools import reduce
+            
+            # Делаем case-insensitive поиск (например, c47 найдет C47)
+            q_objects = [Q(client_code__iexact=code) for code in potential_codes]
+            # Также ищем точные вхождения кусков разделенных пробелами
+            words = full_text.split()
+            q_objects.extend([Q(client_code__iexact=word) for word in words if 2 <= len(word) <= 30])
+            
+            if q_objects:
+                matched_client = ClientProfile.objects.filter(reduce(operator.or_, q_objects)).first()
         
         # 2. ИЩЕМ ОПИСАНИЕ И КОЛИЧЕСТВО (ФИОЛЕТОВАЯ И КРАСНАЯ ЗОНЫ)
         # Китайцы пишут описание внутри 【 ... 】 и количество со словом "件"
