@@ -1,5 +1,5 @@
 # Используем официальный образ Python
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Устанавливаем системные зависимости (нужны для сборки psycopg2 и других библиотек)
 RUN apt-get update && apt-get install -y \
