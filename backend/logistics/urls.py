@@ -54,6 +54,7 @@ urlpatterns = [
     path('scan/client/', ClientScanView.as_view(), name='scan-client'),
     
     # --- Посылки (Сначала специфичные пути) ---
+    path('packages/recognize-client/', __import__('logistics.views.packages', fromlist=['RecognizeClientView']).RecognizeClientView.as_view(), name='recognize-client'),
     path('packages/all/', PackageListView.as_view(), name='all-packages'),
     path('packages/create/', CreatePackageView.as_view(), name='create-package'),
     path('packages/add/', ClientAddPackageView.as_view(), name='client-add-package'),
@@ -106,4 +107,8 @@ urlpatterns = [
     path('push/unsubscribe/', PushUnsubscribeView.as_view(), name='push-unsubscribe'),
     path('push/vapid-key/', VapidPublicKeyView.as_view(), name='push-vapid-key'),
     path('push/test/', SendTestPushView.as_view(), name='push-test'),
+
+    # Webhook Telegram
+    path('telegram/webhook/', __import__('logistics.views.telegram_webhook', fromlist=['TelegramWebhookView']).TelegramWebhookView.as_view(), name='telegram-webhook'),
+    path('telegram/set-webhook/', __import__('logistics.views.telegram_webhook', fromlist=['SetWebhookView']).SetWebhookView.as_view(), name='telegram-set-webhook'),
 ]

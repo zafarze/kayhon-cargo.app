@@ -431,6 +431,28 @@ class UpdatePackageStatusView(APIView):
             return Response({"error": f"Ошибка: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class RecognizeClientView(APIView):
+    """
+    Распознает ID клиента по фото перед сохранением посылки
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        photo = request.FILES.get('photo')
+        if not photo:
+            return Response({"error": "Фото не предоставлено"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            extracted_data = extract_client_from_photo(photo)
+            
+            client_code = None
+            if extracted_data and extracted_data.get("client"):
+                client_code = extracted_data["client"].client_code
+                
+            return Response({"client_code": client_code}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class PackageDeleteView(APIView):
     permission_classes = [IsAdminUser]
 

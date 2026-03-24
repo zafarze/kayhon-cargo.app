@@ -81,11 +81,25 @@ const ScannerTerminal = ({ isOpen, onClose, onSuccess }: ScannerTerminalProps) =
 				setFormData(prev => ({ ...prev, track_code: code }));
 				setAutoScreenshot(imageSrc);
 				toast.success('Трек-код и фото захвачены!');
+
+				// Запускаем распознавание клиента с фото в фоне
+				const file = dataURLtoFile(imageSrc, 'auto_capture.jpg');
+				const formDataPayload = new FormData();
+				formDataPayload.append('photo', file);
+
+				api.post('/api/packages/recognize-client/', formDataPayload)
+					.then(res => {
+						if (res.data.client_code) {
+							setFormData(prev => ({ ...prev, client_code: res.data.client_code }));
+							toast.success(`Клиент найден: ${res.data.client_code}`, { icon: '🤖' });
+						}
+					})
+					.catch(err => console.log('Ошибка распознавания клиента:', err));
 			}
 
 			setIsCameraActive(false);
 
-		} catch (err) {
+		} catch (err: any) {
 			if (err instanceof NotFoundException) return;
 		}
 	}, [isCameraActive, isScanningLock]);
@@ -122,6 +136,19 @@ const ScannerTerminal = ({ isOpen, onClose, onSuccess }: ScannerTerminalProps) =
 			} catch (err) {
 				toast.error('Штрих-код не найден. Введите трек-код вручную.', { icon: '⚠️' });
 			}
+
+			// Пытаемся найти клиента на загруженной картинке
+			const file = dataURLtoFile(imageSrc, 'uploaded.jpg');
+			const formDataPayload = new FormData();
+			formDataPayload.append('photo', file);
+			api.post('/api/packages/recognize-client/', formDataPayload)
+				.then(res => {
+					if (res.data.client_code) {
+						setFormData(prev => ({ ...prev, client_code: res.data.client_code }));
+						toast.success(`Клиент найден: ${res.data.client_code}`, { icon: '🤖' });
+					}
+				})
+				.catch(err => console.log('Ошибка распознавания клиента:', err));
 		};
 		reader.readAsDataURL(file);
 	};
@@ -302,7 +329,11 @@ const ScannerTerminal = ({ isOpen, onClose, onSuccess }: ScannerTerminalProps) =
 														audio={false}
 														ref={webcamRef}
 														screenshotFormat="image/jpeg"
-														videoConstraints={{ facingMode: "environment" }}
+														videoConstraints={{
+															facingMode: "environment",
+															width: { ideal: 1920 },
+															height: { ideal: 1080 }
+														}}
 														style={{ width: '100%', display: 'block' }}
 													/>
 													<div className="absolute inset-0 border-4 border-green-500/50 m-8 rounded-xl pointer-events-none"></div>
