@@ -2,7 +2,13 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+// Ensure we don't end up with /api/api/ if VITE_API_URL already contains /api
+let API_URL = import.meta.env.VITE_API_URL || 'https://kayhon-backend-538751744849.europe-west3.run.app';
+if (API_URL.endsWith('/api')) {
+	API_URL = API_URL.slice(0, -4);
+} else if (API_URL.endsWith('/api/')) {
+	API_URL = API_URL.slice(0, -5);
+}
 
 export const api = axios.create({
 	baseURL: API_URL,

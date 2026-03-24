@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 const getImageUrl = (path: string | null | undefined) => {
 	if (!path) return null;
 	if (path.startsWith('http')) return path;
-	return `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}${path}`;
+	return `${import.meta.env.VITE_API_URL || 'https://kayhon-backend-538751744849.europe-west3.run.app'}${path}`;
 };
 
 // Добавили toggleSidebar в пропсы

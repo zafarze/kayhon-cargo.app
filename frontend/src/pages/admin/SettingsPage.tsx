@@ -9,7 +9,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 const getImageUrl = (path: string | null | undefined) => {
 	if (!path) return null;
 	if (path.startsWith('http')) return path;
-	const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+	const API_URL = import.meta.env.VITE_API_URL || 'https://kayhon-backend-538751744849.europe-west3.run.app';
 	return `${API_URL}${path}`;
 };
 

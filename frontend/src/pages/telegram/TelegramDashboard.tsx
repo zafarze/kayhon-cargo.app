@@ -4,7 +4,7 @@ import { useTelegram } from '../../hooks/useTelegram';
 import { useAuthStore } from '../../store/authStore';
 import {
 	Package, Truck, Plus, Calculator, MessageCircle,
-	HelpCircle, Settings, Search, Clock, List, Home, BarChart3, X, CheckCircle, MapPin, Smartphone, QrCode, Instagram, Phone, Send, Bot
+	HelpCircle, Settings, Search, Clock, List, Home, BarChart3, X, CheckCircle, MapPin, Smartphone, QrCode, Instagram, Phone, Send, Bot, LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../api';
@@ -20,10 +20,10 @@ const QRCodeComponent = (QRCodeLib as any).default || (QRCodeLib as any).QRCode 
 const TelegramDashboard = () => {
 	const { clientCode } = useParams<{ clientCode: string }>();
 	const { tg, user } = useTelegram();
-	
+
 	// --- AUTH STORE ---
-	const { isAuthenticated, login } = useAuthStore();
-	
+	const { isAuthenticated, login, logout } = useAuthStore();
+
 	// --- UNREAD CHAT BADGE ---
 	const [unreadCount, setUnreadCount] = useState(0);
 
@@ -67,7 +67,7 @@ const TelegramDashboard = () => {
 		if (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone) {
 			setIsStandalone(true);
 		}
-		
+
 		const userAgent = window.navigator.userAgent.toLowerCase();
 		setIsIOS(/iphone|ipad|ipod/.test(userAgent));
 
@@ -420,16 +420,16 @@ const TelegramDashboard = () => {
 
 					{/* Баннер Установки PWA */}
 					{!isStandalone && (deferredPrompt || isIOS) && (
-						<motion.div initial={{opacity: 0, scale: 0.95}} animate={{opacity: 1, scale: 1}} className="w-full rounded-3xl bg-gradient-to-tr from-slate-900 via-slate-800 to-slate-900 border border-slate-700 shadow-xl shadow-slate-900/30 mb-6 p-5 text-center flex flex-col justify-center items-center relative overflow-hidden">
+						<motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full rounded-3xl bg-gradient-to-tr from-slate-900 via-slate-800 to-slate-900 border border-slate-700 shadow-xl shadow-slate-900/30 mb-6 p-5 text-center flex flex-col justify-center items-center relative overflow-hidden">
 							<div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-							
+
 							<div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-3 shadow-inner">
 								<Smartphone size={24} className="text-blue-400" />
 							</div>
-							
+
 							<h3 className="text-white font-black text-lg tracking-tight mb-1">Установить приложение</h3>
 							<p className="text-slate-400 text-xs font-medium mb-5 max-w-[200px] leading-relaxed">Получите быстрый доступ к вашим посылкам прямо с экрана телефона</p>
-							
+
 							<button onClick={handleInstallClick} className="w-[85%] sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-8 rounded-full text-sm transition-all shadow-lg shadow-blue-500/30 active:scale-95 border border-blue-400/30 relative z-10 flex items-center justify-center gap-2">
 								{isIOS ? 'ИНСТРУКЦИЯ (iOS)' : 'УСТАНОВИТЬ'}
 							</button>
@@ -929,6 +929,18 @@ const TelegramDashboard = () => {
 						<MessageCircle size={20} />
 						Связаться с поддержкой
 					</button>
+
+					<button
+						onClick={() => {
+							if (window.confirm('Вы уверены, что хотите выйти из аккаунта?')) {
+								logout();
+							}
+						}}
+						className="w-full mt-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-colors border border-red-100"
+					>
+						<LogOut size={20} />
+						Выйти из аккаунта
+					</button>
 				</div>
 			)}
 
@@ -1077,7 +1089,7 @@ const TelegramDashboard = () => {
 						>
 							<div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6"></div>
 							<h3 className="text-xl font-black text-gray-900 mb-6 text-center tracking-tight">Свяжитесь с нами</h3>
-							
+
 							<div className="flex flex-col gap-3">
 								<a href="tel:+992700701212" className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 active:scale-95 transition-transform text-slate-800">
 									<div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center shadow-inner">
@@ -1119,8 +1131,8 @@ const TelegramDashboard = () => {
 									</div>
 								</a>
 
-								<button 
-									onClick={() => { setShowContactModal(false); setActiveTab('chat'); }} 
+								<button
+									onClick={() => { setShowContactModal(false); setActiveTab('chat'); }}
 									className="flex items-center gap-4 p-4 rounded-2xl bg-blue-600 text-white active:scale-95 transition-transform shadow-lg shadow-blue-600/30 mt-2"
 								>
 									<div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">

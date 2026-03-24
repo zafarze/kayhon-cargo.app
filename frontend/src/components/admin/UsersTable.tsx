@@ -43,7 +43,7 @@ const UsersTable = ({ users, refreshData }: UsersTableProps) => {
 	const getAvatarUrl = (path: string | null | undefined) => {
 		if (!path) return null;
 		if (path.startsWith('http')) return path;
-		return `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}${path}`;
+		return `${import.meta.env.VITE_API_URL || 'https://kayhon-backend-538751744849.europe-west3.run.app'}${path}`;
 	};
 
 	// --- 2. ЗАКРЫТИЕ ПО ESC ---
@@ -295,7 +295,7 @@ const UsersTable = ({ users, refreshData }: UsersTableProps) => {
 								<div className="pb-12">
 									<label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Роль (Должность)</label>
 									<BeautifulSelect
-										value={formData.role} 
+										value={formData.role}
 										onChange={val => setFormData({ ...formData, role: val })}
 										options={[
 											{ value: 'admin', label: '👨‍💻 Администратор (Полный)' },
