@@ -77,17 +77,36 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+# =========================================================
+# --- Database (УМНОЕ ПОДКЛЮЧЕНИЕ ДЛЯ CLOUD RUN И ЛОКАЛКИ)
+# =========================================================
+db_host = os.getenv('DB_HOST', 'localhost')
+db_port = os.getenv('DB_PORT', '5432')
+
+if db_host.startswith('/cloudsql/'):
+    # Настройки для Google Cloud Run (используем Unix-сокет, порт ДОЛЖЕН БЫТЬ ПУСТЫМ)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': db_host,
+            'PORT': '', 
+        }
     }
-}
+else:
+    # Настройки для локальной разработки (используем обычный хост и порт)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': db_host,
+            'PORT': db_port,
+        }
+    }
 
 
 # Password validation
