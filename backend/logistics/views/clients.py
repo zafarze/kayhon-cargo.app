@@ -8,7 +8,8 @@ from ..serializers import ClientListSerializer
 
 # Используем ListAPIView - он уже умеет делить на страницы!
 class ClientListView(generics.ListAPIView):
-    queryset = ClientProfile.objects.select_related('user').order_by('-id')
+    # Исключаем сотрудников (is_staff=True) из списка клиентов
+    queryset = ClientProfile.objects.filter(user__is_staff=False).select_related('user').order_by('-id')
     serializer_class = ClientListSerializer
     permission_classes = [IsAdminUser] # Только админ видит список
     

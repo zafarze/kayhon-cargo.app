@@ -11,6 +11,15 @@ const DeliveryRequestsTable = () => {
 	const [loading, setLoading] = useState(true);
 	const [search, setSearch] = useState('');
 	const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'delivered'>('all');
+	const [deliveryPrice, setDeliveryPrice] = useState(15.0);
+
+	useEffect(() => {
+		api.get('/api/settings/').then(res => {
+			if (res.data?.price_dushanbe_home) {
+				setDeliveryPrice(res.data.price_dushanbe_home);
+			}
+		}).catch(console.error);
+	}, []);
 
 	const fetchRequests = async () => {
 		try {
@@ -143,11 +152,26 @@ const DeliveryRequestsTable = () => {
 											</div>
 										))}
 									</div>
-									<div className="mt-3 flex justify-between items-center bg-green-50 dark:bg-green-900/20 p-2 rounded-lg">
-										<span className="text-xs font-bold text-green-700 dark:text-green-500 uppercase">К оплате:</span>
-										<span className="font-black text-green-700 dark:text-green-400">
-											{req.packages_details.reduce((sum, p) => sum + Number(p.total_price), 0).toFixed(2)} с.
-										</span>
+									<div className="mt-3 flex flex-col gap-1 bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-100 dark:border-green-800">
+										<div className="flex justify-between items-center">
+											<span className="text-[10px] font-bold text-green-600 dark:text-green-500 uppercase">За посылки:</span>
+											<span className="font-bold text-green-700 dark:text-green-400 text-xs">
+												{req.packages_details.reduce((sum, p) => sum + Number(p.total_price), 0).toFixed(2)} с.
+											</span>
+										</div>
+										<div className="flex justify-between items-center">
+											<span className="text-[10px] font-bold text-green-600 dark:text-green-500 uppercase">Доставка:</span>
+											<span className="font-bold text-green-700 dark:text-green-400 text-xs">
+												{deliveryPrice.toFixed(2)} с.
+											</span>
+										</div>
+										<div className="h-px w-full bg-green-200 dark:bg-green-800/50 my-1"></div>
+										<div className="flex justify-between items-center">
+											<span className="text-xs font-black text-green-800 dark:text-green-300 uppercase">К оплате:</span>
+											<span className="font-black text-green-700 dark:text-green-400 text-base">
+												{(req.packages_details.reduce((sum, p) => sum + Number(p.total_price), 0) + deliveryPrice).toFixed(2)} с.
+											</span>
+										</div>
 									</div>
 								</div>
 							</div>

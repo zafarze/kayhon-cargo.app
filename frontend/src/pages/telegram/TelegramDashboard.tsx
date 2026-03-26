@@ -90,9 +90,16 @@ const TelegramDashboard = () => {
 	};
 
 	// Калькулятор
+	const [calcMode, setCalcMode] = useState<'weight' | 'volume'>('weight');
 	const [calcWeight, setCalcWeight] = useState('');
-	const [calcPrice, setCalcPrice] = useState<number | null>(null);
-	const RATE_PER_KG = 4.5;
+	const [calcLength, setCalcLength] = useState('');
+	const [calcWidth, setCalcWidth] = useState('');
+	const [calcHeight, setCalcHeight] = useState('');
+	const [includeDelivery, setIncludeDelivery] = useState(false);
+
+	const [RATE_PER_KG, setRATE_PER_KG] = useState(4.5);
+	const [RATE_PER_CUBE, setRATE_PER_CUBE] = useState(0);
+	const [deliveryPrice, setDeliveryPrice] = useState(15.0);
 
 	// Доставка
 	const [selectedPackages, setSelectedPackages] = useState<number[]>([]);
@@ -105,6 +112,13 @@ const TelegramDashboard = () => {
 		tg?.ready();
 		tg?.expand();
 		tg?.MainButton.hide();
+
+		// Загружаем настройки тарифа
+		api.get('/api/settings/').then(res => {
+			if (res.data?.price_china_dushanbe) setRATE_PER_KG(res.data.price_china_dushanbe);
+			if (res.data?.price_per_cube) setRATE_PER_CUBE(res.data.price_per_cube);
+			if (res.data?.price_dushanbe_home) setDeliveryPrice(res.data.price_dushanbe_home);
+		}).catch(console.error);
 
 		const initApp = async () => {
 			if (!isAuthenticated) {
@@ -298,11 +312,6 @@ const TelegramDashboard = () => {
 			case 'expected': return { bg: 'bg-orange-50 text-orange-600', label: 'Доставка по Китаю', icon: Truck };
 			default: return { bg: 'bg-blue-50 text-blue-600', label: 'В пути', icon: Truck };
 		}
-	};
-
-	const handleCalculate = () => {
-		const weight = parseFloat(calcWeight);
-		if (weight > 0) setCalcPrice(weight * RATE_PER_KG);
 	};
 
 	// Карточка меню
@@ -690,7 +699,7 @@ const TelegramDashboard = () => {
 				{showCalc && (
 					<motion.div
 						initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-						className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+						className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
 					>
 						<motion.div
 							initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}
@@ -698,37 +707,95 @@ const TelegramDashboard = () => {
 						>
 							<button onClick={() => setShowCalc(false)} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500"><X size={20} /></button>
 
-							<div className="text-center mb-6">
-								<div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
-									<Calculator size={32} />
+							<div className="flex items-center gap-3 mb-6">
+								<div className="w-12 h-12 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center shadow-sm"><Calculator size={24} /></div>
+								<div>
+									<h3 className="text-xl font-black text-slate-800">Калькулятор</h3>
+									<p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Примерный расчет</p>
 								</div>
-								<h3 className="text-xl font-black text-slate-800">Калькулятор</h3>
-								<p className="text-slate-400 text-xs font-bold">Тариф: ${RATE_PER_KG} / кг</p>
+							</div>
+
+							<div className="bg-slate-100 p-1 rounded-xl flex gap-1 mb-6">
+								<button
+									onClick={() => setCalcMode('weight')}
+									className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${calcMode === 'weight' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+								>
+									По весу
+								</button>
+								<button
+									onClick={() => setCalcMode('volume')}
+									className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${calcMode === 'volume' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+								>
+									По объему
+								</button>
 							</div>
 
 							<div className="space-y-4">
-								<input
-									type="number" autoFocus
-									value={calcWeight} onChange={e => { setCalcWeight(e.target.value); setCalcPrice(null) }}
-									placeholder="Вес (кг)"
-									className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-2xl font-black text-center focus:border-red-400 outline-none text-slate-900"
-								/>
-
-								{calcPrice !== null && (
-									<div className="py-4 bg-green-50 rounded-xl border border-green-100 text-center">
-										<p className="text-green-600 text-xs font-bold uppercase mb-1">Стоимость доставки</p>
-										<div className="text-4xl font-black text-green-700 tracking-tight">
-											{calcPrice.toFixed(2)} $
+								{calcMode === 'weight' ? (
+									<div>
+										<label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 ml-1">Вес (кг)</label>
+										<input
+											type="number" autoFocus
+											value={calcWeight} onChange={e => setCalcWeight(e.target.value)}
+											placeholder="Например: 2.5"
+											className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 font-bold text-slate-800 focus:border-red-400 outline-none transition-all text-slate-900"
+										/>
+									</div>
+								) : (
+									<div className="grid grid-cols-3 gap-2">
+										<div>
+											<label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 ml-1">Длина</label>
+											<input type="number" value={calcLength} onChange={e => setCalcLength(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 px-2 font-bold text-slate-800 outline-none focus:border-red-400" placeholder="см" />
+										</div>
+										<div>
+											<label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 ml-1">Ширина</label>
+											<input type="number" value={calcWidth} onChange={e => setCalcWidth(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 px-2 font-bold text-slate-800 outline-none focus:border-red-400" placeholder="см" />
+										</div>
+										<div>
+											<label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 ml-1">Высота</label>
+											<input type="number" value={calcHeight} onChange={e => setCalcHeight(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 px-2 font-bold text-slate-800 outline-none focus:border-red-400" placeholder="см" />
 										</div>
 									</div>
 								)}
 
-								<button
-									onClick={handleCalculate}
-									className="w-full bg-red-500 text-white font-black py-4 rounded-xl shadow-lg shadow-red-200 active:scale-95 transition-transform"
-								>
-									Рассчитать
-								</button>
+								<label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors border border-slate-100">
+									<input
+										type="checkbox"
+										checked={includeDelivery}
+										onChange={(e) => setIncludeDelivery(e.target.checked)}
+										className="w-5 h-5 rounded border-slate-300 text-red-500 focus:ring-red-500"
+									/>
+									<span className="text-xs font-bold text-slate-700">Доставка до двери (+{deliveryPrice} с.)</span>
+								</label>
+
+								<div className="bg-slate-800 rounded-2xl p-5 text-white flex justify-between items-center shadow-xl shadow-slate-200/50">
+									<div>
+										<p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Итого</p>
+										<div className="text-2xl font-black">
+											{(() => {
+												let totalUSD = 0;
+												if (calcMode === 'weight' && calcWeight) {
+													totalUSD = parseFloat(calcWeight) * RATE_PER_KG;
+												} else if (calcMode === 'volume' && calcLength && calcWidth && calcHeight) {
+													const volume = (parseFloat(calcLength) * parseFloat(calcWidth) * parseFloat(calcHeight)) / 1000000;
+													totalUSD = volume * RATE_PER_CUBE;
+												}
+												return totalUSD > 0 ? totalUSD.toFixed(2) : '0.00';
+											})()} <span className="text-sm text-slate-400 font-medium">с.</span>
+											{includeDelivery && (
+												<span className="text-xs text-slate-300 ml-2 font-medium">
+													+ {deliveryPrice} c.
+												</span>
+											)}
+										</div>
+									</div>
+									<div className="text-right">
+										<p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Тариф</p>
+										<div className="text-xs font-bold text-red-400 bg-red-400/10 px-2 py-1 rounded-lg">
+											{calcMode === 'weight' ? `${RATE_PER_KG} с. / кг` : `${RATE_PER_CUBE} с. / м³`}
+										</div>
+									</div>
+								</div>
 							</div>
 						</motion.div>
 					</motion.div>
@@ -755,12 +822,20 @@ const TelegramDashboard = () => {
 								<button onClick={() => setShowDeliveryModal(false)} className="p-2 bg-slate-100 rounded-full text-slate-500"><X size={20} /></button>
 							</div>
 
-							<div className="bg-indigo-50 p-4 rounded-xl mb-6 flex items-center justify-between border border-indigo-100">
+							<div className="bg-indigo-50 p-4 rounded-xl mb-4 flex items-center justify-between border border-indigo-100">
 								<div className="flex items-center gap-3">
 									<Package className="text-indigo-500" size={24} />
 									<span className="font-bold text-indigo-900">Выбрано посылок:</span>
 								</div>
 								<span className="text-xl font-black text-indigo-700">{selectedPackages.length}</span>
+							</div>
+
+							<div className="bg-orange-50 p-4 rounded-xl mb-6 flex items-center justify-between border border-orange-100">
+								<div className="flex items-center gap-3">
+									<Truck className="text-orange-500" size={24} />
+									<span className="font-bold text-orange-900">Стоимость доставки:</span>
+								</div>
+								<span className="text-xl font-black text-orange-700">{deliveryPrice} с.</span>
 							</div>
 
 							<div className="space-y-4 pb-4">
@@ -916,7 +991,7 @@ const TelegramDashboard = () => {
 						</div>
 						<div className="bg-orange-50 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
 							<Calculator className="text-orange-500 mb-2" size={24} />
-							<div className="text-2xl font-black text-orange-700">${stats.totalSpent.toFixed(2)}</div>
+							<div className="text-2xl font-black text-orange-700">{stats.totalSpent.toFixed(2)} с.</div>
 							<div className="text-xs font-bold text-orange-600/70 uppercase">Потрачено</div>
 						</div>
 					</div>
@@ -1039,7 +1114,7 @@ const TelegramDashboard = () => {
 										<Calculator size={16} className="text-red-500" />
 										Как рассчитывается стоимость?
 									</h4>
-									<p className="text-sm opacity-70 leading-relaxed">Стоимость рассчитывается исходя из фактического веса посылки. Текущий тариф: ${RATE_PER_KG} за 1 кг.</p>
+									<p className="text-sm opacity-70 leading-relaxed">Стоимость рассчитывается исходя из фактического веса или объема посылки. Текущий тариф: {RATE_PER_KG} с. за 1 кг.</p>
 								</div>
 
 								<div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">

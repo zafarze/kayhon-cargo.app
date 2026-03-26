@@ -31,6 +31,7 @@ const SettingsPage = () => {
 	const [isSaving, setIsSaving] = useState(false);
 
 	const [formData, setFormData] = useState({ first_name: '', email: '', phone_number: '', address: '' });
+	const [companySettings, setCompanySettings] = useState({ price_china_dushanbe: 4.5, price_dushanbe_home: 15.0, kg_per_cube: 0.0, price_per_cube: 0.0 });
 	const [soundEnabled, setSoundEnabled] = useState(true);
 	const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 	const { theme, setTheme } = useTheme();
@@ -48,6 +49,15 @@ const SettingsPage = () => {
 			try {
 				const res = await api.get('/api/auth/me/');
 				setUser(res.data);
+
+				// Загружаем глобальные настройки компании
+				const settingsRes = await api.get('/api/settings/');
+				setCompanySettings({
+					price_china_dushanbe: settingsRes.data.price_china_dushanbe || 4.5,
+					price_dushanbe_home: settingsRes.data.price_dushanbe_home || 15.0,
+					kg_per_cube: settingsRes.data.kg_per_cube || 0.0,
+					price_per_cube: settingsRes.data.price_per_cube || 0.0,
+				});
 				setFormData({
 					first_name: res.data.first_name || '',
 					email: res.data.email || '',
@@ -99,6 +109,16 @@ const SettingsPage = () => {
 			});
 
 			setUser(res.data);
+
+			// Если админ, сохраняем глобальные настройки
+			if (user?.role === 'admin' || user?.role === 'manager') {
+				await api.patch('/api/settings/', {
+					price_china_dushanbe: companySettings.price_china_dushanbe,
+					price_dushanbe_home: companySettings.price_dushanbe_home,
+					kg_per_cube: companySettings.kg_per_cube,
+					price_per_cube: companySettings.price_per_cube,
+				});
+			}
 
 			// Сохраняем настройки в localStorage
 			localStorage.setItem('soundEnabled', String(soundEnabled));
@@ -202,9 +222,56 @@ const SettingsPage = () => {
 						</div>
 					</div>
 
+					{/* ГЛОБАЛЬНЫЕ НАСТРОЙКИ (Только для админов) */}
+					{(user?.role === 'admin' || user?.role === 'manager') && (
+						<div className="col-span-1 md:col-span-2 pt-4 border-t border-gray-100 dark:border-slate-800">
+							<h3 className="text-sm font-black text-gray-900 dark:text-white mb-4 uppercase">Настройки компании (Глобальные)</h3>
+							<div className="grid grid-cols-1 gap-6">
+								<div className="space-y-2">
+									<label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-2">Цена: Китай - Душанбе (смн / кг)</label>
+									<div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl px-4 py-3 flex items-center focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-blue-300 dark:focus-within:border-blue-500/50 transition-colors">
+										<input type="number" step="0.01" value={companySettings.price_china_dushanbe} onChange={e => setCompanySettings({ ...companySettings, price_china_dushanbe: parseFloat(e.target.value) || 0 })} className="bg-transparent outline-none w-full font-black text-blue-600 dark:text-blue-400 placeholder-gray-400" />
+									</div>
+									<p className="text-xs text-gray-400 dark:text-gray-500 ml-2">Эта цена используется в калькуляторе и при добавлении новых посылок. При изменении она обновится для всех неоплаченных посылок.</p>
+								</div>
+								<div className="space-y-2">
+									<label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-2">Цена за 1 Куб (смн / м³)</label>
+									<div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl px-4 py-3 flex items-center focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-blue-300 dark:focus-within:border-blue-500/50 transition-colors">
+										<input type="number" step="0.01" value={companySettings.price_per_cube} onChange={e => setCompanySettings({ ...companySettings, price_per_cube: parseFloat(e.target.value) || 0 })} className="bg-transparent outline-none w-full font-black text-emerald-600 dark:text-emerald-400 placeholder-gray-400" />
+									</div>
+									<p className="text-xs text-gray-400 dark:text-gray-500 ml-2">Эта цена используется в калькуляторе для расчета стоимости объемных грузов.</p>
+								</div>
+								<div className="space-y-2">
+									<label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-2">Кг за Куб (Плотность)</label>
+									<div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl px-4 py-3 flex items-center focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-blue-300 dark:focus-within:border-blue-500/50 transition-colors">
+										<input type="number" step="0.1" value={companySettings.kg_per_cube} onChange={e => setCompanySettings({ ...companySettings, kg_per_cube: parseFloat(e.target.value) || 0 })} className="bg-transparent outline-none w-full font-black text-indigo-600 dark:text-indigo-400 placeholder-gray-400" />
+									</div>
+									<div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 p-3 rounded-xl">
+										<p className="text-xs text-blue-600/80 dark:text-blue-400/80 leading-relaxed font-medium">
+											<span className="font-bold">Как считается объемный вес?</span> Если посылка легкая, но объемная, ее вес может рассчитываться по формуле:
+											<br /><br />
+											<code className="bg-white dark:bg-slate-800 px-2 py-1 rounded text-blue-700 dark:text-blue-300 shadow-sm">
+												Объемный вес (кг) = (Длина × Ширина × Высота в см) / 1 000 000 × (Кг за Куб)
+											</code>
+											<br /><br />
+											Указанный здесь параметр помогает клиентам и менеджерам понять стандарт плотности груза (например, 167 кг или 200 кг в 1 м³).
+										</p>
+									</div>
+								</div>
+								<div className="space-y-2">
+									<label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-2">Цена доставки по Душанбе до двери (с.)</label>
+									<div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl px-4 py-3 flex items-center focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-blue-300 dark:focus-within:border-blue-500/50 transition-colors">
+										<input type="number" step="0.1" value={companySettings.price_dushanbe_home} onChange={e => setCompanySettings({ ...companySettings, price_dushanbe_home: parseFloat(e.target.value) || 0 })} className="bg-transparent outline-none w-full font-black text-orange-600 dark:text-orange-400 placeholder-gray-400" />
+									</div>
+									<p className="text-xs text-gray-400 dark:text-gray-500 ml-2">Эта сумма будет автоматически прибавляться к стоимости посылок при заказе курьерской доставки до двери.</p>
+								</div>
+							</div>
+						</div>
+					)}
+
 					{/* СИСТЕМНЫЕ НАСТРОЙКИ */}
 					<div className="col-span-1 md:col-span-2 pt-4 border-t border-gray-100 dark:border-slate-800">
-						<h3 className="text-sm font-black text-gray-900 dark:text-white mb-4 uppercase">Системные настройки</h3>
+						<h3 className="text-sm font-black text-gray-900 dark:text-white mb-4 uppercase">Ваши настройки (Локальные)</h3>
 						<div className="space-y-3">
 							<label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 rounded-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
 								<div className="flex items-center gap-3">

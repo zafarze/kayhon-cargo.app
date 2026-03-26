@@ -32,6 +32,7 @@ from .views.prohibited import ProhibitedItemListView, ProhibitedItemDetailView, 
 from .views.reports import ReportExportView
 from .views.finance import ExpenseListView, ExpenseDetailView
 from .views.push import PushSubscribeView, PushUnsubscribeView, VapidPublicKeyView, SendTestPushView
+from .views.settings import CompanySettingsView
 
 urlpatterns = [
     # --- Авторизация ---
@@ -111,4 +112,7 @@ urlpatterns = [
     # Webhook Telegram
     path('telegram/webhook/', __import__('logistics.views.telegram_webhook', fromlist=['TelegramWebhookView']).TelegramWebhookView.as_view(), name='telegram-webhook'),
     path('telegram/set-webhook/', __import__('logistics.views.telegram_webhook', fromlist=['SetWebhookView']).SetWebhookView.as_view(), name='telegram-set-webhook'),
+
+    # Настройки компании
+    path('settings/', CompanySettingsView.as_view(), name='company-settings'),
 ]

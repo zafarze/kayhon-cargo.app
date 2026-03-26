@@ -143,7 +143,18 @@ const Dashboard = () => {
 	const [showQrModal, setShowQrModal] = useState(false);
 	const [showCalcModal, setShowCalcModal] = useState(false);
 	const [showTrackingModal, setShowTrackingModal] = useState(false); // <--- СТЕЙТ ДЛЯ ПУБЛИЧНОГО ТРЕКИНГА
+
+	// Калькулятор
+	const [calcMode, setCalcMode] = useState<'weight' | 'volume'>('weight');
 	const [calcWeight, setCalcWeight] = useState('');
+	const [calcLength, setCalcLength] = useState('');
+	const [calcWidth, setCalcWidth] = useState('');
+	const [calcHeight, setCalcHeight] = useState('');
+	const [includeDelivery, setIncludeDelivery] = useState(false);
+
+	const [ratePerKg, setRatePerKg] = useState(4.5);
+	const [ratePerCube, setRatePerCube] = useState(0);
+	const [rateDelivery, setRateDelivery] = useState(15.0);
 
 	// Данные клиента
 	const { user, updateUser } = useAuthStore();
@@ -174,6 +185,13 @@ const Dashboard = () => {
 
 	useEffect(() => {
 		fetchData(true);
+
+		// Загружаем настройки тарифа
+		api.get('/api/settings/').then(res => {
+			if (res.data?.price_china_dushanbe) setRatePerKg(res.data.price_china_dushanbe);
+			if (res.data?.price_per_cube) setRatePerCube(res.data.price_per_cube);
+			if (res.data?.price_dushanbe_home) setRateDelivery(res.data.price_dushanbe_home);
+		}).catch(console.error);
 
 		// Тихо обновляем данные юзера, чтобы имя всегда было актуальным
 		api.get('/api/auth/me/').then(res => {
@@ -503,6 +521,7 @@ const Dashboard = () => {
 					<div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCalcModal(false)}>
 						<motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} onClick={e => e.stopPropagation()} className="bg-white rounded-[2.5rem] p-8 shadow-2xl max-w-md w-full relative">
 							<button onClick={() => setShowCalcModal(false)} className="absolute top-6 right-6 p-2 bg-slate-50 text-slate-400 rounded-full hover:bg-slate-100 transition-colors"><X size={20} /></button>
+
 							<div className="flex items-center gap-3 mb-6">
 								<div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center shadow-sm"><Calculator size={24} /></div>
 								<div>
@@ -510,30 +529,91 @@ const Dashboard = () => {
 									<p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Примерный расчет</p>
 								</div>
 							</div>
+
+							<div className="bg-slate-100 p-1 rounded-xl flex gap-1 mb-6">
+								<button
+									onClick={() => setCalcMode('weight')}
+									className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${calcMode === 'weight' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+								>
+									По весу (кг)
+								</button>
+								<button
+									onClick={() => setCalcMode('volume')}
+									className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${calcMode === 'volume' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+								>
+									По объему (м³)
+								</button>
+							</div>
+
 							<div className="space-y-4">
-								<div>
-									<label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2 ml-1">Вес посылки (кг)</label>
+								{calcMode === 'weight' ? (
+									<div>
+										<label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2 ml-1">Вес посылки (кг)</label>
+										<input
+											type="number"
+											value={calcWeight}
+											onChange={e => setCalcWeight(e.target.value)}
+											placeholder="Например: 2.5"
+											className="w-full bg-slate-50 border-2 border-slate-100 focus:border-orange-500 rounded-2xl py-4 px-6 font-bold text-slate-800 outline-none transition-all"
+											autoFocus
+										/>
+									</div>
+								) : (
+									<div className="grid grid-cols-3 gap-3">
+										<div>
+											<label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 ml-1">Длина (см)</label>
+											<input type="number" value={calcLength} onChange={e => setCalcLength(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 focus:border-orange-500 rounded-xl py-3 px-3 font-bold text-slate-800 outline-none" placeholder="0" />
+										</div>
+										<div>
+											<label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 ml-1">Ширина (см)</label>
+											<input type="number" value={calcWidth} onChange={e => setCalcWidth(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 focus:border-orange-500 rounded-xl py-3 px-3 font-bold text-slate-800 outline-none" placeholder="0" />
+										</div>
+										<div>
+											<label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 ml-1">Высота (см)</label>
+											<input type="number" value={calcHeight} onChange={e => setCalcHeight(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 focus:border-orange-500 rounded-xl py-3 px-3 font-bold text-slate-800 outline-none" placeholder="0" />
+										</div>
+									</div>
+								)}
+
+								<label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors border border-slate-100">
 									<input
-										type="number"
-										value={calcWeight}
-										onChange={e => setCalcWeight(e.target.value)}
-										placeholder="Например: 2.5"
-										className="w-full bg-slate-50 border-2 border-slate-100 focus:border-orange-500 rounded-2xl py-4 px-6 font-bold text-slate-800 outline-none transition-all"
-										autoFocus
+										type="checkbox"
+										checked={includeDelivery}
+										onChange={(e) => setIncludeDelivery(e.target.checked)}
+										className="w-5 h-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
 									/>
-								</div>
+									<span className="text-sm font-bold text-slate-700">Доставка до двери (+{rateDelivery} с.)</span>
+								</label>
+
 								<div className="bg-slate-800 rounded-2xl p-6 text-white flex justify-between items-center shadow-xl shadow-slate-200/50">
 									<div>
 										<p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ориентировочно</p>
 										<div className="text-3xl font-black">
-											{calcWeight ? (parseFloat(calcWeight) * 4.5).toFixed(2) : '0.00'} <span className="text-lg text-slate-400 font-medium">$</span>
+											{(() => {
+												let totalUSD = 0;
+												if (calcMode === 'weight' && calcWeight) {
+													totalUSD = parseFloat(calcWeight) * ratePerKg;
+												} else if (calcMode === 'volume' && calcLength && calcWidth && calcHeight) {
+													const volume = (parseFloat(calcLength) * parseFloat(calcWidth) * parseFloat(calcHeight)) / 1000000;
+													totalUSD = volume * ratePerCube;
+												}
+												return totalUSD > 0 ? totalUSD.toFixed(2) : '0.00';
+											})()} <span className="text-lg text-slate-400 font-medium">с.</span>
+											{includeDelivery && (
+												<span className="text-sm text-slate-300 ml-2 font-medium">
+													+ {rateDelivery} c.
+												</span>
+											)}
 										</div>
 									</div>
 									<div className="text-right">
 										<p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Тариф</p>
-										<div className="text-sm font-bold text-orange-400 bg-orange-400/10 px-2 py-1 rounded-lg">4.5$ / кг</div>
+										<div className="text-sm font-bold text-orange-400 bg-orange-400/10 px-2 py-1 rounded-lg">
+											{calcMode === 'weight' ? `${ratePerKg} с. / кг` : `${ratePerCube} с. / м³`}
+										</div>
 									</div>
 								</div>
+
 								<p className="text-[10px] font-bold text-slate-400 text-center mt-4 uppercase leading-tight">
 									* Точная стоимость рассчитывается на складе в Душанбе с учетом фактического объема и веса.
 								</p>

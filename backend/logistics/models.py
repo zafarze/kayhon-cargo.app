@@ -86,8 +86,8 @@ class Package(models.Model):
     shelf_location = models.CharField(max_length=20, blank=True, null=True, verbose_name="Ячейка")
     
     # --- ФИНАНСЫ ---
-    price_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=5.00, verbose_name="Цена за кг ($)")
-    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="К оплате ($)")
+    price_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=5.00, verbose_name="Цена за кг (с.)")
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="К оплате (с.)")
     
     is_paid = models.BooleanField(default=False, verbose_name="Оплачено?")
     payment_date = models.DateTimeField(blank=True, null=True, verbose_name="Дата оплаты")
@@ -96,6 +96,13 @@ class Package(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
 
     def save(self, *args, **kwargs):
+        # Если посылка новая, подставляем текущую цену из настроек, если цена не была задана явно (осталась дефолтной 5.00)
+        if not self.pk and self.price_per_kg == Decimal('5.00'):
+            try:
+                self.price_per_kg = CompanySettings.get().price_china_dushanbe
+            except Exception:
+                pass
+
         try:
             weight_dec = Decimal(str(self.weight))
             self.total_price = weight_dec * self.price_per_kg
@@ -267,6 +274,24 @@ class CompanySettings(models.Model):
         default="📦 Нархҳои Kayhon Cargo:\n• 1–20 кг: 27 с/кг\n• 21–30 кг: 25 с/кг\n• 31+ кг: 23 с/кг",
         verbose_name="Тарифы (TJ)"
     )
+    
+    # --- ЦЕНЫ ДЛЯ КАЛЬКУЛЯТОРА И ДОСТАВКИ ---
+    price_china_dushanbe = models.DecimalField(
+        max_digits=10, decimal_places=2, default=4.50,
+        verbose_name="Цена Китай-Душанбе (с./кг)"
+    )
+    price_dushanbe_home = models.DecimalField(
+        max_digits=10, decimal_places=2, default=15.00,
+        verbose_name="Цена доставки до дома (с.)"
+    )
+    kg_per_cube = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00,
+        verbose_name="Плотность (кг за м³)"
+    )
+    price_per_cube = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00,
+        verbose_name="Цена за 1 Куб (с. / м³)"
+    )
 
     def __str__(self):
         return "Настройки системы"
@@ -280,6 +305,22 @@ class CompanySettings(models.Model):
         """Возвращает единственный объект настроек, создаёт если нет."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+    def save(self, *args, **kwargs):
+        # Если это обновление существующих настроек, обновим неоплаченные посылки
+        if self.pk:
+            try:
+                old_settings = CompanySettings.objects.get(pk=self.pk)
+                if old_settings.price_china_dushanbe != self.price_china_dushanbe:
+                    # Обновляем все неоплаченные посылки
+                    unpaid_packages = Package.objects.filter(is_paid=False).exclude(status__in=['delivered', 'rejected'])
+                    for pkg in unpaid_packages:
+                        pkg.price_per_kg = self.price_china_dushanbe
+                        pkg.save()
+            except CompanySettings.DoesNotExist:
+                pass
+                
+        super().save(*args, **kwargs)
 
 
 class Expense(models.Model):

@@ -167,7 +167,7 @@ const DashboardPage = () => {
 												<td className="py-4 font-bold text-gray-500 dark:text-gray-400">{pkg.shelf_location || '—'}</td>
 												<td className="py-4">
 													<div className="font-black text-gray-900 dark:text-white">{pkg.weight} кг</div>
-													<div className="text-[11px] text-gray-400 dark:text-gray-500 font-bold">{pkg.total_price} $</div>
+													<div className="text-[11px] text-gray-400 dark:text-gray-500 font-bold">{pkg.total_price} с.</div>
 												</td>
 												<td className="py-4 pr-4 text-right text-[11px] font-bold text-gray-400">
 													{new Date(pkg.created_at).toLocaleDateString('ru-RU')}

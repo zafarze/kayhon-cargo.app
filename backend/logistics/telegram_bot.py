@@ -35,7 +35,7 @@ TEXTS = {
         'webapp_url': "https://kayhon-cargo.web.app/telegram/{code}",
         'ask_track_code': "📦 Введите ваш трек-код для поиска:",
         'track_result_header': "🔍 *Результаты поиска:*\n",
-        'track_result_item': "📦 *Трек:* `{track}`\n📝 Описание: {desc}\n⚖️ Вес: {weight} кг\n💰 К оплате: ${price}\n📍 Статус: _{status}_\n🗄 Полка: {shelf}\n",
+        'track_result_item': "📦 *Трек:* `{track}`\n📝 Описание: {desc}\n⚖️ Вес: {weight} кг\n💰 К оплате: {price} с.\n📍 Статус: _{status}_\n🗄 Полка: {shelf}\n",
         'track_not_found': "❌ Посылка с трек-кодом не найдена.",
     },
     'en': {
@@ -61,7 +61,7 @@ TEXTS = {
         'webapp_url': "https://kayhon-cargo.web.app/telegram/{code}",
         'ask_track_code': "📦 Enter your track code:",
         'track_result_header': "🔍 *Search Results:*\n",
-        'track_result_item': "📦 *Track:* `{track}`\n📝 Desc: {desc}\n⚖️ Weight: {weight} kg\n💰 Price: ${price}\n📍 Status: _{status}_\n🗄 Shelf: {shelf}\n",
+        'track_result_item': "📦 *Track:* `{track}`\n📝 Desc: {desc}\n⚖️ Weight: {weight} kg\n💰 Price: {price} TJS\n📍 Status: _{status}_\n🗄 Shelf: {shelf}\n",
         'track_not_found': "❌ Package with this track code not found.",
     },
     'tj': {
@@ -87,7 +87,7 @@ TEXTS = {
         'webapp_url': "https://kayhon-cargo.web.app/telegram/{code}",
         'ask_track_code': "📦 Трек-коди худро ворид кунед:",
         'track_result_header': "🔍 *Натиҷаҳои ҷустуҷӯ:*\n",
-        'track_result_item': "📦 *Трек:* `{track}`\n📝 Маълумот: {desc}\n⚖️ Вазн: {weight} кг\n💰 Нарх: ${price}\n📍 Ҳолат: _{status}_\n🗄 Раф: {shelf}\n",
+        'track_result_item': "📦 *Трек:* `{track}`\n📝 Маълумот: {desc}\n⚖️ Вазн: {weight} кг\n💰 Нарх: {price} смн.\n📍 Ҳолат: _{status}_\n🗄 Раф: {shelf}\n",
         'track_not_found': "❌ Бор бо ин трек-код ёфт нашуд.",
     }
 }

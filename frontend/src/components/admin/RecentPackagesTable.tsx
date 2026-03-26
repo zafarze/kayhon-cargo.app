@@ -71,7 +71,7 @@ const RecentPackagesTable = ({ packages }: RecentPackagesTableProps) => {
 
 									<td className="p-5">
 										<div className="font-black text-gray-900">{pkg.weight} кг</div>
-										<div className="text-xs text-gray-400 font-bold mt-0.5">${pkg.total_price}</div>
+										<div className="text-xs text-gray-400 font-bold mt-0.5">{pkg.total_price} с.</div>
 									</td>
 
 									<td className="p-5 pr-8 text-right text-xs font-bold text-gray-400">

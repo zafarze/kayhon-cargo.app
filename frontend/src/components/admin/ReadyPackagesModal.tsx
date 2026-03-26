@@ -53,7 +53,7 @@ const ReadyPackagesModal = ({ isOpen, onClose, data, onSuccess, onHistoryClick }
 			return;
 		}
 
-		customConfirm(`Выдать выбранные (${selectedCount} шт) на сумму ${totalSum.toFixed(2)}$ клиенту ${client.first_name}?`, async () => {
+		customConfirm(`Выдать выбранные (${selectedCount} шт) на сумму ${totalSum.toFixed(2)} с. клиенту ${client.first_name}?`, async () => {
 			setIsDelivering(true);
 			try {
 				await api.post('/api/packages/deliver-all/', {
@@ -119,7 +119,7 @@ const ReadyPackagesModal = ({ isOpen, onClose, data, onSuccess, onHistoryClick }
 									<span className="flex items-center gap-2"><AlertCircle className="text-orange-500" /> Нет посылок к выдаче</span>
 								)}
 								{count > 0 && (
-									<button 
+									<button
 										onClick={() => setSelectedPackages(count === selectedCount ? [] : packages.map((p: any) => p.id))}
 										className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
 									>
@@ -140,8 +140,8 @@ const ReadyPackagesModal = ({ isOpen, onClose, data, onSuccess, onHistoryClick }
 									{packages.map((pkg: any) => {
 										const isSelected = selectedPackages.includes(pkg.id);
 										return (
-											<motion.div 
-												key={pkg.id} 
+											<motion.div
+												key={pkg.id}
 												className={`bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4 cursor-pointer transition-all border-2 ${isSelected ? 'border-blue-400 bg-blue-50/40' : 'border-transparent hover:border-gray-200'}`}
 												onClick={() => {
 													if (isSelected) setSelectedPackages(prev => prev.filter(id => id !== pkg.id));
@@ -161,7 +161,7 @@ const ReadyPackagesModal = ({ isOpen, onClose, data, onSuccess, onHistoryClick }
 													</div>
 												</div>
 												<div className="text-right">
-													<div className="font-black text-lg text-gray-800">{Number(pkg.total_price || 0).toFixed(2)} $</div>
+													<div className="font-black text-lg text-gray-800">{Number(pkg.total_price || 0).toFixed(2)} с.</div>
 												</div>
 											</motion.div>
 										);
@@ -185,7 +185,7 @@ const ReadyPackagesModal = ({ isOpen, onClose, data, onSuccess, onHistoryClick }
 								<div className="flex items-center gap-4">
 									<div className="text-right">
 										<p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">К оплате</p>
-										<p className="text-2xl font-black text-gray-900 leading-none">{totalSum.toFixed(2)}$</p>
+										<p className="text-2xl font-black text-gray-900 leading-none">{totalSum.toFixed(2)} с.</p>
 									</div>
 									<button
 										onClick={handleIssue}
