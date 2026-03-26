@@ -51,6 +51,13 @@ export interface IPackage {
 	created_at: string;
 	updated_at: string;
 
+	client?: any;
+	client_info?: {
+		client_code: string;
+		first_name: string;
+		phone_number: string;
+	} | null;
+
 	// Вложенная история (мы добавили prefetch_related на бэке)
 	history: IPackageHistory[]; // <--- НОВОЕ
 }

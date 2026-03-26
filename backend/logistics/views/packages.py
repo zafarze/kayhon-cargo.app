@@ -3,8 +3,11 @@
 import re
 import numpy as np
 import cv2
-from paddleocr import PaddleOCR
 from decimal import Decimal, InvalidOperation
+import os
+import requests
+import base64
+import json
 
 from rest_framework.views import APIView
 from rest_framework import generics, filters, status
@@ -23,77 +26,143 @@ import logging
 from ..models import Package, ClientProfile, PackageHistory, Notification, Message # <--- Добавили Notification, Message
 from ..serializers import PackageSerializer
 from ..telegram_notify import send_telegram_notification
+from ..permissions import IsEmployee, IsAdminOrManager, IsWarehouse
 
 logger = logging.getLogger(__name__)
 
 # ==========================================
-# 🔥 ИНИЦИАЛИЗАЦИЯ ИИ (PaddleOCR)
+# 🔥 ИНИЦИАЛИЗАЦИЯ ИИ (Gemini Vision)
 # ==========================================
-logger.info("🚀 Загрузка нейросети PaddleOCR...")
-ocr = PaddleOCR(use_angle_cls=True, lang='ch')
-logger.info("✅ PaddleOCR готов к работе!")
+logger.info("🚀 Подготовка нейросети Gemini Vision...")
 
 def extract_client_from_photo(photo_file):
     """
-    Принимает фото, находит код клиента и описание товара (китайские скобки и кол-во штук).
-    Возвращает словарь: {"client": ClientProfile|None, "description": str}
+    Принимает фото, находит код клиента, трек-код и описание товара с помощью Gemini 1.5 Flash.
+    Возвращает словарь: {"client": ClientProfile|None, "description": str, "track_code": str|None}
     """
     try:
-        file_bytes = np.frombuffer(photo_file.read(), np.uint8)
-        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-        
-        result = ocr.ocr(image, cls=True)
-        
-        full_text = ""
-        if result and result[0]:
-            for line in result[0]:
-                full_text += line[1][0] + " "
-                
-        logger.info(f"🤖 ИИ прочитал текст: {full_text}")
-        
-        # 1. ИЩЕМ КЛИЕНТА (САДДАМ, ZOIREHOH И Т.Д.)
-        # Добавляем дефис, подчеркивание и уменьшаем минимальную длину до 2
-        potential_codes = re.findall(r'[A-Za-z0-9\-\+\[\]\_]{2,30}', full_text)
-        matched_client = None
-        if potential_codes:
-            from django.db.models import Q
-            import operator
-            from functools import reduce
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            logger.error("❌ GEMINI_API_KEY не найден в окружении!")
+            return None
             
-            # Делаем case-insensitive поиск (например, c47 найдет C47)
-            q_objects = [Q(client_code__iexact=code) for code in potential_codes]
-            # Также ищем точные вхождения кусков разделенных пробелами
-            words = full_text.split()
-            q_objects.extend([Q(client_code__iexact=word) for word in words if 2 <= len(word) <= 30])
-            
-            if q_objects:
-                matched_client = ClientProfile.objects.filter(reduce(operator.or_, q_objects)).first()
+        photo_bytes = photo_file.read()
+        encoded_image = base64.b64encode(photo_bytes).decode('utf-8')
         
-        # 2. ИЩЕМ ОПИСАНИЕ И КОЛИЧЕСТВО (ФИОЛЕТОВАЯ И КРАСНАЯ ЗОНЫ)
-        # Китайцы пишут описание внутри 【 ... 】 и количество со словом "件"
-        extracted_desc = ""
-        desc_parts = re.findall(r'【.*?】[^【\s]*', full_text)
+        prompt = """Analyze this shipping label and extract the following information in strict JSON format:
+{
+    "client_code": "The client identifier code if visible (e.g. +Sobirjon+025326868, ZOIREHOH, C47, САДДАМ, etc. usually 2-30 chars, might have +, -, _, or brackets). Return null if not found.",
+    "track_code": "The tracking number (typically starts with JT, YT, ZTO, SF, or is a long number of 12-20 digits). Return null if not found.",
+    "description": "Product description and quantity (usually inside Chinese brackets 【】 or followed by 件). Return null if not found.",
+    "full_text": "All raw text found on the label as a single space-separated string."
+}
+IMPORTANT: Return ONLY the JSON object. No Markdown, no code blocks (like ```json), just the raw JSON."""
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
         
-        if desc_parts:
-            # Склеиваем все найденные блоки описания
-            extracted_desc = " ".join(desc_parts).strip()
-        else:
-            # Запасной вариант: если скобок нет, ищем просто цифру и иероглиф "штук" (件)
-            qty_match = re.search(r'(\d+)\s*件', full_text)
-            if qty_match:
-                extracted_desc = f"Товары: {qty_match.group(1)} шт."
-
-        # Ограничиваем длину описания, чтобы не сломать базу данных (макс 250 символов)
-        if len(extracted_desc) > 250:
-            extracted_desc = extracted_desc[:245] + "..."
-
-        return {
-            "client": matched_client,
-            "description": extracted_desc
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": "image/jpeg",
+                            "data": encoded_image
+                        }
+                    }
+                ]
+            }],
+            "generationConfig": {
+                "response_mime_type": "application/json",
+            }
         }
         
+        logger.info("🚀 Отправка фото этикетки в Gemini 1.5 Flash для глубокого анализа...")
+        resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=20)
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            text_response = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "{}")
+            
+            try:
+                parsed_data = json.loads(text_response)
+            except json.JSONDecodeError:
+                # Если Gemini вернул текст с markdown
+                text_response = text_response.replace('```json', '').replace('```', '').strip()
+                parsed_data = json.loads(text_response)
+                
+            logger.info(f"🤖 Ответ Gemini: {parsed_data}")
+            
+            full_text = parsed_data.get("full_text", "")
+            extracted_client_code = parsed_data.get("client_code")
+            extracted_desc = parsed_data.get("description")
+            extracted_track = parsed_data.get("track_code")
+            
+            # 1. Поиск клиента в БД
+            matched_client = None
+            potential_codes = []
+            
+            if extracted_client_code and isinstance(extracted_client_code, str):
+                potential_codes.append(extracted_client_code.strip())
+                
+            if full_text:
+                import re
+                regex_codes = re.findall(r'[A-Za-z0-9\-\+\[\]\_]{2,30}', full_text)
+                potential_codes.extend(regex_codes)
+                potential_codes.extend([word for word in full_text.split() if 2 <= len(word) <= 30])
+                
+            potential_codes = list(set(potential_codes))
+            
+            if potential_codes:
+                from django.db.models import Q
+                import operator
+                from functools import reduce
+                q_objects = [Q(client_code__iexact=code) for code in potential_codes]
+                if q_objects:
+                    matched_client = ClientProfile.objects.filter(reduce(operator.or_, q_objects)).first()
+            
+            # 2. Поиск описания товара
+            if not extracted_desc and full_text:
+                import re
+                desc_parts = re.findall(r'【.*?】[^【\s]*', full_text)
+                if desc_parts:
+                    extracted_desc = " ".join(desc_parts).strip()
+                else:
+                    qty_match = re.search(r'(\d+)\s*件', full_text)
+                    if qty_match:
+                        extracted_desc = f"Товары: {qty_match.group(1)} шт."
+
+            if extracted_desc and isinstance(extracted_desc, str):
+                if len(extracted_desc) > 250:
+                    extracted_desc = extracted_desc[:245] + "..."
+            else:
+                extracted_desc = ""
+
+            # 3. Поиск трек-кода
+            if not extracted_track and full_text:
+                import re
+                track_match = re.search(r'(JT\d{12,18}|YT\d{12,18}|ZTO\d{12,18}|SF\d{10,18}|\d{12,20})', full_text, re.IGNORECASE)
+                if track_match:
+                    extracted_track = track_match.group(1).upper()
+                    logger.info(f"🎯 Gemini нашел трек-код через Regex: {extracted_track}")
+                    
+            if extracted_track and isinstance(extracted_track, str):
+                extracted_track = extracted_track.strip()
+            else:
+                extracted_track = None
+
+            return {
+                "client": matched_client,
+                "raw_client_code": extracted_client_code,
+                "description": extracted_desc,
+                "track_code": extracted_track
+            }
+        else:
+            logger.error(f"❌ Ошибка Gemini API: {resp.status_code} - {resp.text}")
+            return None
+            
     except Exception as e:
-        logger.error(f"❌ Ошибка ИИ (OCR): {e}", exc_info=True)
+        logger.error(f"❌ Ошибка ИИ (Gemini Vision): {e}", exc_info=True)
         return None
     finally:
         # Возвращаем курсор файла на место для сохранения картинки в БД
@@ -171,7 +240,7 @@ class ClientPackagesView(APIView):
 # ==========================================
 
 class CreatePackageView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsEmployee]
 
     def post(self, request):
         client_code = request.data.get('client_code')
@@ -216,9 +285,13 @@ class CreatePackageView(APIView):
             
             if extracted_data:
                 # 1. Авто-заполнение Клиента
-                if not client_code and extracted_data.get("client"):
-                    client_code = extracted_data["client"].client_code
-                    ai_recognized = True
+                if not client_code:
+                    if extracted_data.get("client"):
+                        client_code = extracted_data["client"].client_code
+                        ai_recognized = True
+                    elif extracted_data.get("raw_client_code"):
+                        client_code = extracted_data["raw_client_code"]
+                        ai_recognized = True
                 
                 # 2. Авто-заполнение Описания товара
                 if not description and extracted_data.get("description"):
@@ -257,7 +330,7 @@ class CreatePackageView(APIView):
                     f"Первая строка: только слово 'ДА' или 'НЕТ'.\n"
                     f"Вторая строка: краткое логичное объяснение почему (1-2 предложения)."
                 )
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
                 try:
                     resp = requests.post(
                         url, 
@@ -286,14 +359,26 @@ class CreatePackageView(APIView):
                     try:
                         client = ClientProfile.objects.get(client_code=client_code)
                     except ClientProfile.DoesNotExist:
-                        # Клиент-код не найден — привязываем к профилю UNKNOWN вместо создания мусорных users
-                        unknown_user, _ = User.objects.get_or_create(
-                            username="unknown_cargo",
-                            defaults={'first_name': "Неизвестный", 'password': "temp_password_123"}
+                        # Клиент-код не найден — создаем новый профиль, чтобы он отображался на месте ID клиента
+                        import uuid
+                        import random
+                        safe_username = f"auto_{uuid.uuid4().hex[:8]}"
+                        new_user = User.objects.create(
+                            username=safe_username,
+                            first_name="Неизвестный (Авто)"
                         )
-                        client, _ = ClientProfile.objects.get_or_create(
-                            client_code="UNKNOWN",
-                            defaults={'user': unknown_user, 'phone_number': "000000000", 'role': 'client'}
+                        new_user.set_password("temp_password_123")
+                        new_user.save()
+                        
+                        random_phone = f"000{random.randint(1000000, 9999999)}"
+                        while ClientProfile.objects.filter(phone_number=random_phone).exists():
+                            random_phone = f"000{random.randint(1000000, 9999999)}"
+                            
+                        client = ClientProfile.objects.create(
+                            user=new_user,
+                            client_code=client_code,
+                            phone_number=random_phone,
+                            role='client'
                         )
 
                 package, created = Package.objects.get_or_create(
@@ -356,7 +441,7 @@ class CreatePackageView(APIView):
 
 
 class UpdatePackageStatusView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsEmployee]
 
     def post(self, request):
         track_code = request.data.get('track_code')
@@ -378,7 +463,27 @@ class UpdatePackageStatusView(APIView):
                 try:
                     package.client = ClientProfile.objects.get(client_code=client_code)
                 except ClientProfile.DoesNotExist:
-                    return Response({"error": f"Клиент с кодом {client_code} не найден"}, status=status.HTTP_404_NOT_FOUND)
+                    # Клиент-код не найден — создаем новый профиль
+                    import uuid
+                    import random
+                    safe_username = f"auto_{uuid.uuid4().hex[:8]}"
+                    new_user = User.objects.create(
+                        username=safe_username,
+                        first_name="Неизвестный (Авто)"
+                    )
+                    new_user.set_password("temp_password_123")
+                    new_user.save()
+                    
+                    random_phone = f"000{random.randint(1000000, 9999999)}"
+                    while ClientProfile.objects.filter(phone_number=random_phone).exists():
+                        random_phone = f"000{random.randint(1000000, 9999999)}"
+                        
+                    package.client = ClientProfile.objects.create(
+                        user=new_user,
+                        client_code=client_code,
+                        phone_number=random_phone,
+                        role='client'
+                    )
 
             if weight_val:
                 try:
@@ -432,10 +537,7 @@ class UpdatePackageStatusView(APIView):
 
 
 class RecognizeClientView(APIView):
-    """
-    Распознает ID клиента по фото перед сохранением посылки
-    """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsEmployee]
 
     def post(self, request, *args, **kwargs):
         photo = request.FILES.get('photo')
@@ -446,15 +548,24 @@ class RecognizeClientView(APIView):
             extracted_data = extract_client_from_photo(photo)
             
             client_code = None
-            if extracted_data and extracted_data.get("client"):
-                client_code = extracted_data["client"].client_code
+            track_code = None # <--- Добавили
+            
+            if extracted_data:
+                if extracted_data.get("client"):
+                    client_code = extracted_data["client"].client_code
+                elif extracted_data.get("raw_client_code"):
+                    client_code = extracted_data["raw_client_code"]
+                track_code = extracted_data.get("track_code") # <--- Забираем трек-код
                 
-            return Response({"client_code": client_code}, status=status.HTTP_200_OK)
+            return Response({
+                "client_code": client_code, 
+                "track_code": track_code # <--- Отправляем на фронт
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class PackageDeleteView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrManager]
 
     def delete(self, request, pk):
         package = get_object_or_404(Package, pk=pk)
@@ -464,7 +575,7 @@ class PackageDeleteView(APIView):
 
 
 class BulkUpdateStatusView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsEmployee]
 
     def post(self, request):
         file = request.FILES.get('file')
@@ -549,7 +660,7 @@ class BulkUpdateStatusView(APIView):
 
 
 class ClientReadyPackagesView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsEmployee]
 
     def get(self, request, client_code):
         try:
@@ -569,7 +680,7 @@ class ClientReadyPackagesView(APIView):
 
 
 class DeliverAllPackagesView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsEmployee]
 
     def post(self, request):
         client_code = request.data.get('client_code')
@@ -617,7 +728,7 @@ class DeliverAllPackagesView(APIView):
 class PackageListView(generics.ListAPIView):
     queryset = Package.objects.select_related('client', 'client__user').prefetch_related('history').order_by('-created_at')
     serializer_class = PackageSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsEmployee]
     pagination_class = StandardResultsSetPagination 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['status', 'is_paid'] 

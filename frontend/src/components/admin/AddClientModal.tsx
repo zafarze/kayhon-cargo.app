@@ -3,12 +3,13 @@ import { X } from 'lucide-react';
 
 interface AddClientModalProps {
 	onClose: () => void;
-	onSave: (data: { first_name: string; password: string }) => void;
+	onSave: (data: { first_name: string; phone_number: string; password: string }) => void;
 }
 
 const AddClientModal = ({ onClose, onSave }: AddClientModalProps) => {
 	const [formData, setFormData] = useState({
 		first_name: '',
+		phone_number: '',
 		password: '',
 	});
 
@@ -43,6 +44,19 @@ const AddClientModal = ({ onClose, onSave }: AddClientModalProps) => {
 							required
 							value={formData.first_name}
 							onChange={e => setFormData({ ...formData, first_name: e.target.value })}
+							className="w-full border-2 border-gray-100 focus:border-blue-500 rounded-xl px-4 py-3 outline-none transition-colors"
+						/>
+					</div>
+
+					<div>
+						<label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+							Номер телефона
+						</label>
+						<input
+							type="text"
+							required
+							value={formData.phone_number}
+							onChange={e => setFormData({ ...formData, phone_number: e.target.value })}
 							className="w-full border-2 border-gray-100 focus:border-blue-500 rounded-xl px-4 py-3 outline-none transition-colors"
 						/>
 					</div>

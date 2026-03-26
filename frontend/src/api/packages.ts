@@ -1,6 +1,6 @@
 // src/api/packages.ts
 import { api } from './index';
-import { Package } from '../types';
+import { IPackage } from '../types';
 
 // ==========================================
 // 0. ТИПЫ И ИНТЕРФЕЙСЫ
@@ -31,15 +31,15 @@ export interface GetPackagesParams {
 // --- 1. Получить все посылки (Для Админа) ---
 // ТЕПЕРЬ ПОДДЕРЖИВАЕТ ПАГИНАЦИЮ ИЗ DJANGO!
 export const getPackages = async (params?: GetPackagesParams) => {
-	// Обрати внимание: ожидаем PaginatedResponse<Package>, а не Package[]
-	const response = await api.get<PaginatedResponse<Package>>('/packages/all/', { params });
+	// Обрати внимание: ожидаем PaginatedResponse<IPackage>, а не IPackage[]
+	const response = await api.get<PaginatedResponse<IPackage>>('/api/packages/all/', { params });
 	return response.data;
 };
 
 // --- 2. Получить посылки клиента (Для Личного кабинета) ---
 // Бэкенд (ClientPackagesView) отдает обычный массив без пагинации
 export const getClientPackages = async (clientCode: string) => {
-	const response = await api.get<Package[]>(`/packages/${clientCode}/`);
+	const response = await api.get<IPackage[]>(`/api/packages/${clientCode}/`);
 	return response.data;
 };
 
@@ -57,7 +57,7 @@ export const createPackage = async (data: {
 	if (data.description) formData.append('description', data.description);
 	if (data.photo) formData.append('photo', data.photo);
 
-	const response = await api.post<Package>('/packages/create/', formData, {
+	const response = await api.post<IPackage>('/api/packages/create/', formData, {
 		headers: { 'Content-Type': 'multipart/form-data' }, // Обязательно для файлов
 	});
 	return response.data;
@@ -80,7 +80,7 @@ export const updatePackageStatus = async (data: {
 	if (data.shelf_location) formData.append('shelf_location', data.shelf_location);
 	if (data.photo) formData.append('photo', data.photo);
 
-	const response = await api.post<Package>('/packages/update/', formData, {
+	const response = await api.post<IPackage>('/api/packages/update/', formData, {
 		headers: { 'Content-Type': 'multipart/form-data' },
 	});
 	return response.data;

@@ -201,7 +201,12 @@ const PackagesTable = ({ packages: initialPackages = [], isDashboard = false, in
 								data.map((pkg, i) => {
 									const config = getStatusConfig(pkg.status);
 									// @ts-ignore
-									const clientName = pkg.client_info?.first_name || pkg.client_info?.client_code || pkg.client || "—";
+									let clientName = pkg.client_info?.first_name || pkg.client_info?.client_code || pkg.client || "—";
+									if (clientName === "Неизвестный (Авто)" && pkg.client_info?.client_code) {
+										clientName = `ID: ${pkg.client_info.client_code}`;
+									} else if (pkg.client_info?.client_code && pkg.client_info?.client_code !== 'UNKNOWN') {
+										clientName = `${clientName} (${pkg.client_info.client_code})`;
+									}
 									const isExpanded = expandedRow === pkg.id;
 
 									// --- Расчет нумерации ---

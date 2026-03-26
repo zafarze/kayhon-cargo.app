@@ -1,6 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import User
 from decimal import Decimal, InvalidOperation # <--- ДОБАВИЛИ InvalidOperation
+import uuid
+import os
+
+def get_avatar_upload_path(instance, filename):
+    ext = filename.split('.')[-1]
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    return os.path.join('avatars/', filename)
+
+def get_package_photo_upload_path(instance, filename):
+    ext = filename.split('.')[-1]
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    return os.path.join('package_photos/', filename)
 
 # 1. Профиль клиента / сотрудника
 class ClientProfile(models.Model):
@@ -17,7 +29,7 @@ class ClientProfile(models.Model):
     address = models.TextField(blank=True, null=True, verbose_name="Адрес")
     client_code = models.CharField(max_length=20, unique=True, blank=True, verbose_name="Код клиента")
     qr_code_data = models.CharField(max_length=100, blank=True, verbose_name="Данные QR")
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name="Фото профиля")
+    avatar = models.ImageField(upload_to=get_avatar_upload_path, blank=True, null=True, verbose_name="Фото профиля")
     
     # --- ДОБАВЛЕНО НОВОЕ ПОЛЕ РОЛИ ---
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='client', verbose_name="Роль")
@@ -68,7 +80,7 @@ class Package(models.Model):
     description = models.CharField(max_length=255, blank=True, verbose_name="Описание")
     
     weight = models.FloatField(default=0.0, verbose_name="Вес (кг)")
-    photo = models.ImageField(upload_to='package_photos/', blank=True, null=True, verbose_name="Фото посылки")
+    photo = models.ImageField(upload_to=get_package_photo_upload_path, blank=True, null=True, verbose_name="Фото посылки")
     
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='china_warehouse', verbose_name="Статус")
     shelf_location = models.CharField(max_length=20, blank=True, null=True, verbose_name="Ячейка")

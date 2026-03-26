@@ -14,6 +14,7 @@ interface AuthState {
 	isAuthenticated: boolean;
 	login: (token: string, userData: any) => void;
 	logout: () => void;
+	updateUser: (userData: Partial<User>) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => {
@@ -47,6 +48,16 @@ export const useAuthStore = create<AuthState>((set) => {
 				token: null,
 				user: null,
 				isAuthenticated: false
+			});
+		},
+
+		// 4. Функция обновления данных пользователя
+		updateUser: (newUserData) => {
+			set((state) => {
+				if (!state.user) return state;
+				const updatedUser = { ...state.user, ...newUserData };
+				localStorage.setItem('userData', JSON.stringify(updatedUser));
+				return { user: updatedUser };
 			});
 		}
 	};

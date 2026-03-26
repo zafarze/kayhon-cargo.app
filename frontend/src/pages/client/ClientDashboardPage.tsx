@@ -16,6 +16,7 @@ import toast from 'react-hot-toast';
 
 import Header from "../../components/client/Header";
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
+import { useAuthStore } from '../../store/authStore';
 
 // --- ХЕЛПЕРЫ ---
 const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
@@ -78,7 +79,6 @@ const PackageItem = ({ pkg, index }: { pkg: IPackage, index: number }) => {
 		switch (s) {
 			case 'arrived_dushanbe': return 'bg-purple-50 text-purple-600 border-purple-100';
 			case 'delivered': return 'bg-green-50 text-green-600 border-green-100';
-			// 👇 ДОБАВИЛИ ЭТУ СТРОКУ 👇
 			case 'expected': return 'bg-orange-50 text-orange-600 border-orange-100';
 			default: return 'bg-blue-50 text-blue-600 border-blue-100';
 		}
@@ -145,9 +145,10 @@ const Dashboard = () => {
 	const [showTrackingModal, setShowTrackingModal] = useState(false); // <--- СТЕЙТ ДЛЯ ПУБЛИЧНОГО ТРЕКИНГА
 	const [calcWeight, setCalcWeight] = useState('');
 
-	// Данные клиента (позже можно брать из AuthStore)
-	const userName = "Farid";
-	const userPhone = "992900000000";
+	// Данные клиента
+	const { user, updateUser } = useAuthStore();
+	const userName = user?.first_name || "Клиент";
+	const userPhone = (user as any)?.phone || "992900000000";
 
 	const warehouseAddress = {
 		city: "Yiwu (Китай)",
@@ -171,7 +172,16 @@ const Dashboard = () => {
 		}
 	};
 
-	useEffect(() => { fetchData(true); }, [clientCode]);
+	useEffect(() => {
+		fetchData(true);
+
+		// Тихо обновляем данные юзера, чтобы имя всегда было актуальным
+		api.get('/api/auth/me/').then(res => {
+			if (res.data.first_name) {
+				updateUser({ first_name: res.data.first_name });
+			}
+		}).catch(() => { });
+	}, [clientCode]);
 
 	useAutoRefresh(() => {
 		fetchData(false);
@@ -543,9 +553,9 @@ const Dashboard = () => {
 							<p className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-wider">Для быстрой выдачи на складе</p>
 
 							<div className="bg-white p-4 rounded-3xl border-2 border-dashed border-slate-200 inline-block mb-6 relative hover:border-blue-300 transition-colors">
-								<QRCodeComponent 
-									value={`CLIENT:${clientCode}`} 
-									size={192} 
+								<QRCodeComponent
+									value={`CLIENT:${clientCode}`}
+									size={192}
 									bgColor="#ffffff"
 									fgColor="#1e293b" // slate-800
 									level="H"

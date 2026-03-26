@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-w2d3b5sy=20=+ox3q!ccvc-zc94seeln^@j4hlv-z(knt_rkcd'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*'] # Для разработки можно оставить '*', на проде укажешь свой домен
 
@@ -133,6 +133,8 @@ REST_FRAMEWORK = {
     # --- НОВЫЕ НАСТРОЙКИ ---
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20, # Количество записей на одной странице
+    'PAGE_SIZE_QUERY_PARAM': 'page_size', # Чтобы фронтенд мог сам запрашивать размер (например, 50)
+    'MAX_PAGE_SIZE': 100, # Защита от слишком больших запросов
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 
@@ -187,6 +189,8 @@ VAPID_ADMIN_EMAIL = os.environ.get('VAPID_ADMIN_EMAIL', 'admin@kayhoncargo.com')
 
 
 # --- Настройки CORS (Связь с React) ---
+CORS_ALLOW_ALL_ORIGINS = True
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",

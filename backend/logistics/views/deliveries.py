@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from django.conf import settings
 from django.db.models import Q  # <--- Добавили импорт Q для поиска
 from django.utils import timezone # <--- Вынесли импорт времени наверх
+from django.db import transaction
 
 # 👇 Добавили Message в импорты моделей
 from logistics.models import DeliveryRequest, ClientProfile, Package, Message
@@ -53,18 +54,19 @@ def request_delivery(request):
     if not packages.exists():
         return Response({"error": "Выбранные посылки не найдены или не готовы к доставке (не на складе)"}, status=status.HTTP_400_BAD_REQUEST)
 
-    delivery = DeliveryRequest.objects.create(
-        client=client,
-        address=address,
-        phone=phone,
-        comment=comment
-    )
-    delivery.packages.set(packages)
+    with transaction.atomic():
+        delivery = DeliveryRequest.objects.create(
+            client=client,
+            address=address,
+            phone=phone,
+            comment=comment
+        )
+        delivery.packages.set(packages)
 
-    # Обновляем статусы посылок на "В доставке"
-    for pkg in packages:
-        pkg.status = 'in_delivery'
-        pkg.save()
+        # Обновляем статусы посылок на "В доставке"
+        for pkg in packages:
+            pkg.status = 'in_delivery'
+            pkg.save()
     
     # Отправка уведомления админу в Телеграм
     if TELEGRAM_ADMIN_CHAT_ID:
@@ -112,44 +114,45 @@ def update_delivery_status(request, pk):
     if new_status not in ['pending', 'accepted', 'delivered', 'cancelled']:
         return Response({"error": "Недопустимый статус"}, status=status.HTTP_400_BAD_REQUEST)
 
-    if new_status == 'accepted':
-        delivery.courier = request.user
-        delivery.accepted_at = timezone.now()
-    elif new_status == 'delivered':
-        delivery.delivered_at = timezone.now()
+    with transaction.atomic():
+        if new_status == 'accepted':
+            delivery.courier = request.user
+            delivery.accepted_at = timezone.now()
+        elif new_status == 'delivered':
+            delivery.delivered_at = timezone.now()
 
-    delivery.status = new_status
-    delivery.save()
+        delivery.status = new_status
+        delivery.save()
 
-    # Если доставлено, обновляем статусы посылок
-    if new_status == 'delivered':
-        for pkg in delivery.packages.all():
-            pkg.status = 'delivered'
-            pkg.save()
-    elif new_status == 'accepted':
-        # Если вернули из 'delivered' в 'accepted' (в пути)
-        for pkg in delivery.packages.all():
-            pkg.status = 'in_delivery'
-            pkg.save()
+        # Если доставлено, обновляем статусы посылок
+        if new_status == 'delivered':
+            for pkg in delivery.packages.all():
+                pkg.status = 'delivered'
+                pkg.save()
+        elif new_status == 'accepted':
+            # Если вернули из 'delivered' в 'accepted' (в пути)
+            for pkg in delivery.packages.all():
+                pkg.status = 'in_delivery'
+                pkg.save()
 
-    # =======================================================
-    # 👇 НОВОЕ: АВТО-СООБЩЕНИЕ ВО ВНУТРЕННИЙ ЧАТ 👇
-    # =======================================================
-    chat_msg = ""
-    if new_status == 'accepted':
-        chat_msg = "🚚 Ваша заявка на доставку принята курьером! Ожидайте доставку по вашему адресу."
-    elif new_status == 'delivered':
-        chat_msg = "✅ Ваши посылки успешно доставлены! Спасибо, что выбираете Kayhon Cargo."
-    elif new_status == 'cancelled':
-        chat_msg = "❌ Ваша заявка на доставку была отменена."
+        # =======================================================
+        # 👇 НОВОЕ: АВТО-СООБЩЕНИЕ ВО ВНУТРЕННИЙ ЧАТ 👇
+        # =======================================================
+        chat_msg = ""
+        if new_status == 'accepted':
+            chat_msg = "🚚 Ваша заявка на доставку принята курьером! Ожидайте доставку по вашему адресу."
+        elif new_status == 'delivered':
+            chat_msg = "✅ Ваши посылки успешно доставлены! Спасибо, что выбираете Kayhon Cargo."
+        elif new_status == 'cancelled':
+            chat_msg = "❌ Ваша заявка на доставку была отменена."
 
-    if chat_msg:
-        Message.objects.create(
-            sender=request.user,  # Сообщение отправится от имени админа/курьера, который нажал кнопку
-            receiver=delivery.client.user, # Получатель - владелец заявки
-            text=chat_msg
-        )
-    # =======================================================
+        if chat_msg:
+            Message.objects.create(
+                sender=request.user,  # Сообщение отправится от имени админа/курьера, который нажал кнопку
+                receiver=delivery.client.user, # Получатель - владелец заявки
+                text=chat_msg
+            )
+        # =======================================================
 
     # Уведомление клиенту (в Телеграм - сработает, если когда-нибудь добавите telegram_id)
     if hasattr(delivery.client, 'telegram_id') and delivery.client.telegram_id:

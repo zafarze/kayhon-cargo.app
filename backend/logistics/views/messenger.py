@@ -33,10 +33,18 @@ class ChatMessageView(APIView):
         if not user.is_staff:
             # Отмечаем личные сообщения от админа как прочитанные
             Message.objects.filter(receiver=user, is_read=False).update(is_read=True)
-            # Отмечаем общие рассылки (где receiver=None) как прочитанные
-            Message.objects.filter(receiver__isnull=True).exclude(sender=user).filter(is_read=False).update(is_read=True)
+            # Отмечаем общие рассылки (где receiver=None) как прочитанные, только те, что созданы после регистрации
+            Message.objects.filter(
+                receiver__isnull=True, 
+                created_at__gte=user.date_joined
+            ).exclude(sender=user).filter(is_read=False).update(is_read=True)
             
-            messages = Message.objects.filter(Q(sender=user) | Q(receiver=user)).order_by('created_at')
+            # Получаем личные сообщения и общие рассылки, созданные после регистрации
+            messages = Message.objects.filter(
+                Q(sender=user) | 
+                Q(receiver=user) | 
+                (Q(receiver__isnull=True) & Q(created_at__gte=user.date_joined))
+            ).order_by('created_at')
             serializer = MessageSerializer(messages, many=True)
             return Response(serializer.data)
         

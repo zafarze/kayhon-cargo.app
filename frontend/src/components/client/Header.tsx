@@ -1,8 +1,10 @@
 // src/components/client/Header.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Bell, QrCode, Menu, User, X, Info } from 'lucide-react';
+import { Search, Bell, QrCode, Menu, User, X, Info, Settings, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
+import { useAuthStore } from '../../store/authStore';
 
 interface HeaderProps {
 	user?: { first_name: string; client_code: string };
@@ -20,7 +22,12 @@ const Header = ({ user, greeting, onOpenQr, onSearch, toggleSidebar }: HeaderPro
 	const [notifications, setNotifications] = useState<any[]>([]);
 	const [unreadCount, setUnreadCount] = useState(0);
 	const [isNotifOpen, setIsNotifOpen] = useState(false);
+	const [isProfileOpen, setIsProfileOpen] = useState(false);
 	const notifRef = useRef<HTMLDivElement>(null);
+	const profileRef = useRef<HTMLDivElement>(null);
+
+	const navigate = useNavigate();
+	const logout = useAuthStore(state => state.logout);
 
 	// --- ЗАГРУЗКА УВЕДОМЛЕНИЙ ---
 	const fetchNotifications = async () => {
@@ -60,10 +67,18 @@ const Header = ({ user, greeting, onOpenQr, onSearch, toggleSidebar }: HeaderPro
 			if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
 				setIsNotifOpen(false);
 			}
+			if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+				setIsProfileOpen(false);
+			}
 		};
 		document.addEventListener('mousedown', handleClickOutside);
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, []);
+
+	const handleLogout = () => {
+		logout();
+		navigate('/');
+	};
 
 	// --- ПОИСК ---
 	const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,12 +215,53 @@ const Header = ({ user, greeting, onOpenQr, onSearch, toggleSidebar }: HeaderPro
 					</div>
 
 					{/* Профиль */}
-					<div className="pl-1">
-						<div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 p-[2px] cursor-pointer hover:scale-105 transition-transform shadow-md relative z-10">
+					<div className="pl-1 relative" ref={profileRef}>
+						<div
+							onClick={() => setIsProfileOpen(!isProfileOpen)}
+							className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 p-[2px] cursor-pointer hover:scale-105 transition-transform shadow-md relative z-10"
+						>
 							<div className="w-full h-full bg-white rounded-full flex items-center justify-center text-blue-700 font-black text-xs md:text-sm border-2 border-white">
 								{user?.first_name ? user.first_name[0].toUpperCase() : <User size={18} />}
 							</div>
 						</div>
+
+						<AnimatePresence>
+							{isProfileOpen && (
+								<motion.div
+									initial={{ opacity: 0, y: 10, scale: 0.95 }}
+									animate={{ opacity: 1, y: 0, scale: 1 }}
+									exit={{ opacity: 0, y: 10, scale: 0.95 }}
+									transition={{ duration: 0.2 }}
+									className="absolute right-0 top-14 w-56 md:w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 p-2 origin-top-right"
+								>
+									<div
+										onClick={() => {
+											navigate(`/dashboard/${user?.client_code}/profile`);
+											setIsProfileOpen(false);
+										}}
+										className="px-4 py-3 border-b border-slate-50 mb-2 cursor-pointer hover:bg-slate-50 transition-colors"
+									>
+										<p className="text-sm font-bold text-slate-900 truncate">{user?.first_name || 'Клиент'}</p>
+										<p className="text-xs text-slate-400 font-medium truncate">{user?.client_code || '---'}</p>
+									</div>
+									<button
+										onClick={() => {
+											navigate(`/dashboard/${user?.client_code}/profile`);
+											setIsProfileOpen(false);
+										}}
+										className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors text-left"
+									>
+										<Settings size={16} /> Настройки
+									</button>
+									<button
+										onClick={handleLogout}
+										className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-colors text-left"
+									>
+										<LogOut size={16} /> Выйти
+									</button>
+								</motion.div>
+							)}
+						</AnimatePresence>
 					</div>
 				</div>
 			</motion.div>

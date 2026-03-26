@@ -55,9 +55,9 @@ const ClientsPage = () => {
 		}
 	};
 
-	const handleAddClient = async (data: { first_name: string; password: string }) => {
+	const handleAddClient = async (data: { first_name: string; phone_number: string; password: string }) => {
 		try {
-			// В API регистрации отправляем имя и пароль, клиентский код сгенерируется
+			// В API регистрации отправляем имя, номер телефона и пароль, клиентский код сгенерируется
 			const res = await api.post('/api/register/', data);
 			toast.success(`Клиент добавлен! Код: ${res.data.client_code}`);
 			setIsAdding(false);

@@ -111,11 +111,19 @@ class NotificationView(APIView):
     def get(self, request):
         """Получить список последних уведомлений"""
         # Берем последние 10 уведомлений текущего пользователя (свежие сверху)
-        notifs = Notification.objects.filter(recipient=request.user).order_by('-created_at')[:10]
+        # И только те, которые были созданы после регистрации пользователя
+        notifs = Notification.objects.filter(
+            recipient=request.user,
+            created_at__gte=request.user.date_joined
+        ).order_by('-created_at')[:10]
         serializer = NotificationSerializer(notifs, many=True)
         
         # Считаем количество только НЕПРОЧИТАННЫХ (для красной точки)
-        unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        unread_count = Notification.objects.filter(
+            recipient=request.user, 
+            is_read=False,
+            created_at__gte=request.user.date_joined
+        ).count()
         
         return Response({
             "notifications": serializer.data,
@@ -124,7 +132,11 @@ class NotificationView(APIView):
 
     def patch(self, request):
         """Пометить все уведомления как прочитанные (когда открыл меню)"""
-        Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        Notification.objects.filter(
+            recipient=request.user, 
+            is_read=False,
+            created_at__gte=request.user.date_joined
+        ).update(is_read=True)
         return Response({"status": "ok", "message": "All marked as read"})
 
 

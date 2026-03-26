@@ -6,11 +6,13 @@ import { User, Phone, Save, ShieldCheck, Key, X } from 'lucide-react';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
 import Header from '../../components/client/Header';
+import { useAuthStore } from '../../store/authStore';
 
 const ClientProfilePage = () => {
 	const { clientCode } = useParams<{ clientCode: string }>();
 	// Получаем функцию открытия мобильного меню из ClientLayout
 	const { toggleSidebar } = useOutletContext<{ toggleSidebar: () => void }>() || { toggleSidebar: () => { } };
+	const { updateUser } = useAuthStore();
 
 	const [userData, setUserData] = useState({ first_name: '', phone_number: '', address: '' });
 	const [loading, setLoading] = useState(false);
@@ -29,6 +31,7 @@ const ClientProfilePage = () => {
 					phone_number: res.data.phone_number || res.data.username || '',
 					address: res.data.address || '',
 				});
+				updateUser({ first_name: res.data.first_name || '' });
 			} catch (err) {
 				console.error("Ошибка загрузки профиля:", err);
 			}
@@ -40,6 +43,7 @@ const ClientProfilePage = () => {
 		setLoading(true);
 		try {
 			await api.patch('/api/auth/me/', userData);
+			updateUser({ first_name: userData.first_name });
 			toast.success('Данные успешно сохранены!', { icon: '✅' });
 		} catch {
 			toast.error('Ошибка при сохранении данных');
